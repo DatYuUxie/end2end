@@ -1,6 +1,7 @@
 package com.springboot.end2end.registration;
 
 
+import com.springboot.end2end.event.RegistrationCompleteEvent;
 import com.springboot.end2end.user.IUserService;
 import com.springboot.end2end.user.User;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ public class RegistrationController {
     public String registerUser(@ModelAttribute("user") RegistrationRequest registration){
         User user = userService.registerUser(registration);
         //public the verification email event here
+        publisher.publishEvent(new RegistrationCompleteEvent(user,""));
         return"redirect:/registration//registration-form?success";
     }
 
