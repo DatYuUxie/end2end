@@ -3,6 +3,7 @@ package com.springboot.end2end.user;
 import com.springboot.end2end.registration.RegistrationRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
@@ -14,6 +15,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class UserService implements IUserService{
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
     @Override
     public List<User> getAllUser() {
         return userRepository.findAll();
@@ -22,7 +24,8 @@ public class UserService implements IUserService{
     @Override
     public User registerUser(RegistrationRequest registrationRequest) {
         var user = new User(registrationRequest.getFirstName(),registrationRequest.getLastName(),
-                registrationRequest.getEmail(),registrationRequest.getPassword(),
+                registrationRequest.getEmail(),
+                passwordEncoder.encode(registrationRequest.getPassword()),
                 Arrays.asList(new Role("ROLE_USER")));
         return user;
     }
