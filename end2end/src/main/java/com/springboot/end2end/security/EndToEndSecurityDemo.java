@@ -28,6 +28,8 @@ public class EndToEndSecurityDemo {
                 .authorizeHttpRequests()
                 .requestMatchers(
                         "/",
+                        "/login",
+                        "/error",
                         "/registration/**")
                 .permitAll()
                 .anyRequest()

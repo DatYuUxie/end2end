@@ -19,7 +19,7 @@ public class VerificationTokenService implements IVerificationTokenService {
     public String validateToken(String token) {
         Optional<VerificationToken> theToken =tokenRepository.findByToken(token);
         if(theToken.isEmpty()){
-            return "Invalid verification Token";
+            return "Invalid";
         }
         Calendar calendar = Calendar.getInstance();
         if(theToken.get().getExpirationTime().getTime() -
