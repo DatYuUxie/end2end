@@ -2,12 +2,15 @@ package com.springboot.end2end.registration;
 
 
 import com.springboot.end2end.event.RegistrationCompleteEvent;
+import com.springboot.end2end.event.listener.RegistrationCompleteEventListener;
+import com.springboot.end2end.password.IPasswordResetTokenService;
 import com.springboot.end2end.registration.token.VerificationToken;
 import com.springboot.end2end.registration.token.VerificationTokenRepository;
 import com.springboot.end2end.registration.token.VerificationTokenService;
 import com.springboot.end2end.user.IUserService;
 import com.springboot.end2end.user.User;
 import com.springboot.end2end.utility.UrlUtil;
+import jakarta.mail.MessagingException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -15,7 +18,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.UnsupportedEncodingException;
 import java.util.Optional;
+import java.util.UUID;
 
 @Controller
 @RequiredArgsConstructor
@@ -24,6 +29,8 @@ public class RegistrationController {
     private final IUserService userService;
     private final ApplicationEventPublisher publisher;
     private final VerificationTokenService tokenService;
+    private final IPasswordResetTokenService passwordResetTokenService;
+    private final RegistrationCompleteEventListener eventListener;
 
 
     @GetMapping("/registration-form")
@@ -60,4 +67,57 @@ public class RegistrationController {
     }
 
 
+    @GetMapping("/forgot-password-request")
+    public String forgotPasswordForm(){
+        return "forgot-password-form";
+    }
+
+    @PostMapping("/forgot-password")
+    public String resetPasswordRequest(HttpServletRequest request, Model model){
+        String email = request.getParameter("email");
+        User user = userService.findByEmail(email);
+        if(user == null){
+            return "redirect:/registration/forgot-password-request?not_found";
+        }
+        String passwordResetToken = UUID.randomUUID().toString();
+        passwordResetTokenService.createPasswordResetForUser(user, passwordResetToken);
+        // send password reset verification mail to the user
+        String url = UrlUtil.getApplicationUrl(request)+"/registration/password-reset-form?token="+passwordResetToken;
+        try {
+            eventListener.sendPasswordResetVerificationEmail(url);
+        } catch (MessagingException e) {
+            throw new RuntimeException(e);
+//            model.addAttribute("error",e.getMessage());
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+//            model.addAttribute("error",e.getMessage());
+        }
+        return "redirect:/registration/forgot-password-request?success";
+    }
+
+
+    @GetMapping("/reset-password-form")
+    public String passwordResetForm(@RequestParam("token") String token, Model model){
+        model.addAttribute("token", token);
+        return "password-reset-form";
+    }
+
+
+    @PostMapping("/reset-password")
+    public String resetPassword(HttpServletRequest request){
+        String theToken = request.getParameter("token");
+        String password =request.getParameter("password");
+        String tokenVerificationResult =
+                passwordResetTokenService.validatePasswordResetToken(theToken);
+        if(tokenVerificationResult.equalsIgnoreCase("valid")){
+            return "redirect:/error?invalid_token";
+        }
+        Optional<User> theUser =
+                passwordResetTokenService.findUserByPasswordResetToken(theToken);
+        if(theUser.isPresent()){
+            passwordResetTokenService.resetPassword(theUser.get(),password);
+            return "redirect:/login?reset_success";
+        }
+        return "redirect:/error?not_found";
+    }
 }
