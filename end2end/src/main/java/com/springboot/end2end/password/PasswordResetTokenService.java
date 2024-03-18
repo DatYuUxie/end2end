@@ -35,7 +35,7 @@ public class PasswordResetTokenService implements IPasswordResetTokenService{
     }
 
     @Override
-    public void createPasswordResetForUser(User user, String passwordResetToken) {
+    public void createPasswordResetTokenForUser(User user, String passwordResetToken) {
         PasswordResetToken resetToken = new PasswordResetToken(passwordResetToken,user);
         passwordResetTokenRepository.save(resetToken);
     }

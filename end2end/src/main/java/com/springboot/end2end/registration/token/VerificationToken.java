@@ -1,6 +1,7 @@
 package com.springboot.end2end.registration.token;
 
 import com.springboot.end2end.user.User;
+import com.springboot.end2end.utility.TokenExpirationTime;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

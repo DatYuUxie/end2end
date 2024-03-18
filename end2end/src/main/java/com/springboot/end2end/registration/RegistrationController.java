@@ -41,10 +41,12 @@ public class RegistrationController {
 
 
     @PostMapping("/register")
-    public String registerUser(@ModelAttribute("user") RegistrationRequest registration, HttpServletRequest request){
+    public String registerUser(@ModelAttribute("user") RegistrationRequest registration,
+                               HttpServletRequest request){
         User user = userService.registerUser(registration);
         //public the verification email event here
-        publisher.publishEvent(new RegistrationCompleteEvent(user, UrlUtil.getApplicationUrl(request)));
+        publisher.publishEvent(new RegistrationCompleteEvent(user,
+                UrlUtil.getApplicationUrl(request)));
         return"redirect:/registration//registration-form?success";
     }
 
@@ -75,22 +77,18 @@ public class RegistrationController {
     @PostMapping("/forgot-password")
     public String resetPasswordRequest(HttpServletRequest request, Model model){
         String email = request.getParameter("email");
-        User user = userService.findByEmail(email);
-        if(user == null){
+        Optional<User> user = userService.findByEmail(email);
+        if(user.isEmpty()){
             return "redirect:/registration/forgot-password-request?not_found";
         }
         String passwordResetToken = UUID.randomUUID().toString();
-        passwordResetTokenService.createPasswordResetForUser(user, passwordResetToken);
+        passwordResetTokenService.createPasswordResetTokenForUser(user.get(), passwordResetToken);
         // send password reset verification mail to the user
         String url = UrlUtil.getApplicationUrl(request)+"/registration/password-reset-form?token="+passwordResetToken;
         try {
             eventListener.sendPasswordResetVerificationEmail(url);
-        } catch (MessagingException e) {
-            throw new RuntimeException(e);
-//            model.addAttribute("error",e.getMessage());
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-//            model.addAttribute("error",e.getMessage());
+        } catch (MessagingException | UnsupportedEncodingException e) {
+            model.addAttribute("error", e.getMessage());
         }
         return "redirect:/registration/forgot-password-request?success";
     }
@@ -109,7 +107,7 @@ public class RegistrationController {
         String password =request.getParameter("password");
         String tokenVerificationResult =
                 passwordResetTokenService.validatePasswordResetToken(theToken);
-        if(tokenVerificationResult.equalsIgnoreCase("valid")){
+        if(!tokenVerificationResult.equalsIgnoreCase("valid")){
             return "redirect:/error?invalid_token";
         }
         Optional<User> theUser =
